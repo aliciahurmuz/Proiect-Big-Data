@@ -1,0 +1,72 @@
+install.packages("tidyverse")
+install.packages("modelr")
+library(tidyverse)
+library(modelr)
+data_house <- read_csv("kc_house_data.csv")
+View(data_house)
+data_house <- na.omit(data_house)
+
+# Păstrarea doar a coloanelor necesare
+data_house <- data_house %>%
+  select(price, sqft_living, bedrooms, bathrooms)
+View(data_house)
+# Convertirea într-un tibble
+data_house <- as_tibble(data_house)
+head(data_house)
+
+# Explorarea vizuală a datelor
+data_house %>%
+  ggplot(aes(sqft_living, price)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", color = "blue") + 
+  ggtitle("Relația dintre suprafața locuibilă și preț")
+
+data_house %>%
+  ggplot(aes(bedrooms, price)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", color = "red") + 
+  ggtitle("Relația dintre numărul de dormitoare și preț")
+
+data_house %>%
+  ggplot(aes(bathrooms, price)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", color = "green") + 
+  ggtitle("Relația dintre numărul de băi și preț")
+
+# Modelarea prețului în funcție de suprafața locuibilă, numărul de dormitoare și numărul de băi
+mod_price <- lm(data = data_house, price ~ sqft_living + bedrooms + bathrooms)
+summary(mod_price)
+
+# Generarea predicțiilor pentru un set de valori
+grid_price <- data_house %>%
+  data_grid(sqft_living = seq_range(sqft_living, 100),
+            bedrooms = seq_range(bedrooms, 100),
+            bathrooms = seq_range(bathrooms, 100))
+
+grid_price <- grid_price %>%
+  mutate(price = predict(mod_price, newdata = grid_price))
+
+# Plotarea datelor și a liniilor de regresie
+ggplot(data_house, aes(sqft_living, price)) + 
+  geom_point() + 
+  geom_line(data = grid_price, aes(y = price), color = "blue", size = 1) +
+  ggtitle("Relația dintre suprafața locuibilă și preț")
+
+ggplot(data_house, aes(bedrooms, price)) + 
+  geom_point() + 
+  geom_line(data = grid_price, aes(y = price), color = "red", size = 1) +
+  ggtitle("Relația dintre numărul de dormitoare și preț")
+
+ggplot(data_house, aes(bathrooms, price)) + 
+  geom_point() + 
+  geom_line(data = grid_price, aes(y = price), color = "green", size = 1) +
+  ggtitle("Relația dintre numărul de băi și preț")
+
+# Predicții pentru un nou set de valori
+new_house <- tibble(
+  sqft_living = 2500,
+  bedrooms = 4,
+  bathrooms = 2.5
+)
+predict(mod_price, newdata = new_house, interval = "confidence")
+predict(mod_price, newdata = new_house, interval = "prediction")
